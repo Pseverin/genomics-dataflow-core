@@ -1,9 +1,7 @@
 package com.google.allenday.nanostream.integration;
 
-import com.google.allenday.nanostream.gene.GeneBlobUriData;
 import com.google.allenday.nanostream.gene.GeneData;
 import com.google.allenday.nanostream.gene.GeneExampleMetaData;
-import com.google.allenday.nanostream.gene.GeneRawData;
 import com.google.allenday.nanostream.transform.AlignSortMergeTransform;
 import org.apache.beam.runners.dataflow.DataflowRunner;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
@@ -13,9 +11,6 @@ import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.Create;
-import org.apache.beam.sdk.transforms.GroupByKey;
-import org.apache.beam.sdk.transforms.MapElements;
-import org.apache.beam.sdk.transforms.SimpleFunction;
 import org.apache.beam.sdk.values.KV;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,7 +40,6 @@ public class EndToEndPipelineTest {
         DataflowPipelineOptions pipelineOptions = PipelineOptionsFactory
                 .as(DataflowPipelineOptions.class);
         pipelineOptions.setRunner(DataflowRunner.class);
-//        pipelineOptions.setRunner(DirectRunner.class);
 
         pipelineOptions.setWorkerMachineType("n1-standard-8");
         pipelineOptions.setProject("cannabis-3k");
@@ -64,16 +58,18 @@ public class EndToEndPipelineTest {
         String testFile1 = TEST_EXAMPLE_RUN + "_1.fastq";
         String testFile2 = TEST_EXAMPLE_RUN + "_2.fastq";
 
-        pipeline
-                .apply(Create.<KV<GeneExampleMetaData, GeneData>>of(
-                        KV.of(testGeneExampleMetaData,
-                                new GeneBlobUriData(testFile1,
-                                        String.format("gs://%s/sra/%s/%s/%s", SRC_BUCKET, TEST_EXAMPLE_PROJECT, TEST_EXAMPLE_SRA, testFile1))),
-                        KV.of(testGeneExampleMetaData,
-                                new GeneBlobUriData(testFile2,
-                                        String.format("gs://%s/sra/%s/%s/%s", SRC_BUCKET, TEST_EXAMPLE_PROJECT, TEST_EXAMPLE_SRA, testFile2)))
 
-                ))
+        pipeline
+                .apply(Create.of(
+                        KV.of(testGeneExampleMetaData,
+                                new GeneData(GeneData.DataType.BLOB_URI, testFile1)
+                                        .withBlobUri(String.format("gs://%s/sra/%s/%s/%s", SRC_BUCKET, TEST_EXAMPLE_PROJECT, TEST_EXAMPLE_SRA, testFile1))),
+                        KV.of(testGeneExampleMetaData,
+                                new GeneData(GeneData.DataType.BLOB_URI, testFile2)
+                                        .withBlobUri(String.format("gs://%s/sra/%s/%s/%s", SRC_BUCKET, TEST_EXAMPLE_PROJECT, TEST_EXAMPLE_SRA, testFile1))
+
+                        )))
+
                 .apply(new AlignSortMergeTransform("AlignSortMergeTransform",
                         SRC_BUCKET,
                         RESULT_BUCKET,

@@ -43,8 +43,6 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
     @Override
     public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, GeneData>> input) {
         return input
-
-
                 .apply(GroupByKey.create())
                 .apply(ParDo.of(new AlignFn(
                         new CmdExecutor(),
@@ -61,7 +59,7 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
                     public KV<KV<GeneReadGroupMetaData, String>, GeneData> apply(KV<GeneExampleMetaData, GeneData> input) {
                         GeneExampleMetaData geneExampleMetaData = input.getKey();
                         GeneData geneData = input.getValue();
-                        return KV.of(KV.of(geneExampleMetaData, geneData.getReferenceName()), input.getValue());
+                        return KV.of(KV.of(geneExampleMetaData, geneData.getReferenceName()), geneData);
                     }
                 }))
                 .apply(GroupByKey.create())

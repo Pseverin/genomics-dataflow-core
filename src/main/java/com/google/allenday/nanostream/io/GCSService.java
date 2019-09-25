@@ -92,7 +92,7 @@ public class GCSService {
         return Optional.ofNullable(storage.get(blobId)).map(Blob::exists).orElse(false);
     }
 
-    public List<Blob> getAllBlobsIn(String bucketName, String prefix) {F
+    public List<Blob> getAllBlobsIn(String bucketName, String prefix) {
         Bucket bucket = storage.get(bucketName);
         return StreamSupport.stream(bucket.list(Storage.BlobListOption.prefix(prefix)).iterateAll().spliterator(), false)
                 .collect(Collectors.toList());

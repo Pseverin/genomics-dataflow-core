@@ -1,8 +1,6 @@
 package com.google.allenday.nanostream.io;
 
-import com.google.allenday.nanostream.gene.GeneBlobUriData;
 import com.google.allenday.nanostream.gene.GeneData;
-import com.google.allenday.nanostream.gene.GeneRawData;
 import com.google.cloud.storage.Blob;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
@@ -38,7 +36,7 @@ public class IoHandler implements Serializable {
         } else {
             String fileName = FileUtils.getFilenameFromPath(filepath);
             LOG.info(String.format("Pass %s file as RAW data", filepath));
-            return new GeneRawData(fileName, referenceName, FileUtils.readFileToByteArray(filepath));
+            return new GeneData(GeneData.DataType.RAW, fileName).withReferenceName(referenceName).withRaw(FileUtils.readFileToByteArray(filepath));
         }
     }
 
@@ -49,14 +47,14 @@ public class IoHandler implements Serializable {
         LOG.info(String.format("Export %s file to GCS %s", filepath, gcsFilePath));
         Blob blob = gcsService.saveToGcs(resultsBucket, gcsFilePath,
                 Files.readAllBytes(Paths.get(gcsFilePath)));
-        return new GeneBlobUriData(fileName, referenceName, gcsService.getUriFromBlob(blob));
+        return new GeneData(GeneData.DataType.BLOB_URI, fileName).withReferenceName(referenceName).withBlobUri(gcsService.getUriFromBlob(blob));
     }
 
     public String handleInputAsLocalFile(GeneData geneData, GCSService gcsService, String destFilepath) throws IOException {
         if (geneData.getDataType() == GeneData.DataType.RAW) {
-            FileUtils.saveDataToFile(geneData.getDataAsBytes(), destFilepath);
+            FileUtils.saveDataToFile(geneData.getRaw(), destFilepath);
         } else if (geneData.getDataType() == GeneData.DataType.BLOB_URI) {
-            Pair<String, String> blobElementsFromUri = gcsService.getBlobElementsFromUri(geneData.getData());
+            Pair<String, String> blobElementsFromUri = gcsService.getBlobElementsFromUri(geneData.getBlobUri());
             gcsService.downloadBlobTo(gcsService.getBlob(blobElementsFromUri.getValue0(), blobElementsFromUri.getValue1()),
                     destFilepath);
         }
@@ -68,16 +66,16 @@ public class IoHandler implements Serializable {
         Blob resultBlob;
         if (geneData.getDataType() == GeneData.DataType.RAW) {
             String filePath = workDir + newFileName;
-            FileUtils.saveDataToFile(geneData.getDataAsBytes(), filePath);
+            FileUtils.saveDataToFile(geneData.getRaw(), filePath);
 
             resultBlob = gcsService.saveToGcs(resultsBucket, gcsFilePath,
                     Files.readAllBytes(Paths.get(filePath)));
         } else if (geneData.getDataType() == GeneData.DataType.BLOB_URI) {
-            resultBlob = gcsService.copy(srcBucket, geneData.getData(), resultsBucket, gcsFilePath);
+            resultBlob = gcsService.copy(srcBucket, geneData.getBlobUri(), resultsBucket, gcsFilePath);
         } else {
             throw new RuntimeException("Gene data type should be RAW or BLOB_URI");
         }
-        return new GeneBlobUriData(newFileName, reference, gcsService.getUriFromBlob(resultBlob));
+        return new GeneData(GeneData.DataType.BLOB_URI, newFileName).withReferenceName(reference).withBlobUri(gcsService.getUriFromBlob(resultBlob));
     }
 
 
