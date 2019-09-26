@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.google.allenday.nanostream.merge;
+package com.google.allenday.genomics.core.merge;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.*;

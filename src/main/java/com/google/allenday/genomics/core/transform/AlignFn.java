@@ -1,12 +1,12 @@
-package com.google.allenday.nanostream.transform;
+package com.google.allenday.genomics.core.transform;
 
-import com.google.allenday.nanostream.cmd.CmdExecutor;
-import com.google.allenday.nanostream.cmd.WorkerSetupService;
-import com.google.allenday.nanostream.gene.GeneData;
-import com.google.allenday.nanostream.gene.GeneExampleMetaData;
-import com.google.allenday.nanostream.io.FileUtils;
-import com.google.allenday.nanostream.io.GCSService;
-import com.google.allenday.nanostream.io.IoHandler;
+import com.google.allenday.genomics.core.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.cmd.WorkerSetupService;
+import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.io.FileUtils;
+import com.google.allenday.genomics.core.io.GCSService;
+import com.google.allenday.genomics.core.io.IoHandler;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.slf4j.Logger;

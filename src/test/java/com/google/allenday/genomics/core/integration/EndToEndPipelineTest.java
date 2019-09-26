@@ -1,16 +1,16 @@
-package com.google.allenday.nanostream.integration;
+package com.google.allenday.genomics.core.integration;
 
-import com.google.allenday.nanostream.gene.GeneData;
-import com.google.allenday.nanostream.gene.GeneExampleMetaData;
-import com.google.allenday.nanostream.transform.AlignSortMergeTransform;
+import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.transform.AlignSortMergeTransform;
 import org.apache.beam.runners.dataflow.DataflowRunner;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
-import org.apache.beam.runners.direct.DirectRunner;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.Create;
+import org.apache.beam.sdk.transforms.GroupByKey;
 import org.apache.beam.sdk.values.KV;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,6 +70,7 @@ public class EndToEndPipelineTest {
 
                         )))
 
+                .apply(GroupByKey.create())
                 .apply(new AlignSortMergeTransform("AlignSortMergeTransform",
                         SRC_BUCKET,
                         RESULT_BUCKET,

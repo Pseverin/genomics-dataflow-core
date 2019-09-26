@@ -1,12 +1,12 @@
-package com.google.allenday.nanostream.transform;
+package com.google.allenday.genomics.core.transform;
 
-import com.google.allenday.nanostream.cmd.CmdExecutor;
-import com.google.allenday.nanostream.cmd.WorkerSetupService;
-import com.google.allenday.nanostream.gene.GeneData;
-import com.google.allenday.nanostream.gene.GeneExampleMetaData;
-import com.google.allenday.nanostream.gene.GeneReadGroupMetaData;
-import com.google.allenday.nanostream.io.IoHandler;
-import com.google.allenday.nanostream.merge.BamFilesMerger;
+import com.google.allenday.genomics.core.cmd.CmdExecutor;
+import com.google.allenday.genomics.core.cmd.WorkerSetupService;
+import com.google.allenday.genomics.core.gene.GeneData;
+import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
+import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
+import com.google.allenday.genomics.core.io.IoHandler;
+import com.google.allenday.genomics.core.merge.BamFilesMerger;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
@@ -14,7 +14,7 @@ import org.apache.beam.sdk.values.PCollection;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, GeneData>>, PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
+public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>>, PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
 
     private String srcBucket;
     private String destBucket;
@@ -41,9 +41,8 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
     }
 
     @Override
-    public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, GeneData>> input) {
+    public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>> input) {
         return input
-                .apply(GroupByKey.create())
                 .apply(ParDo.of(new AlignFn(
                         new CmdExecutor(),
                         new WorkerSetupService(new CmdExecutor()),

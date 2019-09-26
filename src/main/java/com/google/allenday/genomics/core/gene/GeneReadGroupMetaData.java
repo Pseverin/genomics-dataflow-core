@@ -1,8 +1,7 @@
-package com.google.allenday.nanostream.gene;
+package com.google.allenday.genomics.core.gene;
 
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.DefaultCoder;
-import org.apache.beam.sdk.coders.SerializableCoder;
 
 import java.io.Serializable;
 import java.util.Objects;

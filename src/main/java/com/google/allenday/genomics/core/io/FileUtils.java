@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.io;
+package com.google.allenday.genomics.core.io;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

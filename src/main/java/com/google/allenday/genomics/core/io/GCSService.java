@@ -1,4 +1,4 @@
-package com.google.allenday.nanostream.io;
+package com.google.allenday.genomics.core.io;
 
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;

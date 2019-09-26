@@ -1,6 +1,6 @@
-package com.google.allenday.nanostream.io;
+package com.google.allenday.genomics.core.io;
 
-import com.google.allenday.nanostream.gene.GeneData;
+import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.cloud.storage.Blob;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
