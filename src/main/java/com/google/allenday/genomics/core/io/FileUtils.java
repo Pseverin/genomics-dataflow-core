@@ -85,4 +85,8 @@ public class FileUtils {
             LOG.error(e.getMessage());
         }
     }
+
+    public static long getFreeDiskSpace(){
+        return new File("/").getFreeSpace();
+    }
 }

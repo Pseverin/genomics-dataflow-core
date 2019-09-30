@@ -1,5 +1,6 @@
 package com.google.allenday.genomics.core.cmd;
 
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +13,7 @@ public class CmdExecutor implements Serializable {
 
     private Logger LOG = LoggerFactory.getLogger(CmdExecutor.class);
 
-    public boolean executeCommand(String cmdCommand) {
+    public Pair<Boolean, Integer> executeCommand(String cmdCommand) {
         LOG.info(String.format("Executing command: %s", cmdCommand));
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command("bash", "-c", cmdCommand);
@@ -31,10 +32,10 @@ public class CmdExecutor implements Serializable {
 
             int exitCode = process.waitFor();
             LOG.info("\nExited with error code : " + exitCode);
-            return exitCode == 0;
+            return Pair.with(exitCode == 0, exitCode);
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            return false;
+            return Pair.with(false, -1);
         }
     }
 }

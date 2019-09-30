@@ -15,13 +15,21 @@ public class GeneData implements Serializable {
     @Nullable
     private String blobUri;
     @Nullable
-    private byte[] raw;
+    private byte[] content;
     @Nullable
     private String referenceName;
 
-    public GeneData(DataType dataType, String fileName) {
+    private GeneData(DataType dataType, String fileName) {
         this.dataType = dataType;
         this.fileName = fileName;
+    }
+
+    public static GeneData fromBlobUri(String blobUri, String fileName){
+        return new GeneData(DataType.BLOB_URI, fileName).withBlobUri(blobUri);
+    }
+
+    public static GeneData fromByteArrayContent(byte[] content, String fileName){
+        return new GeneData(DataType.CONTENT, fileName).withContent(content);
     }
 
     @Nullable
@@ -30,8 +38,8 @@ public class GeneData implements Serializable {
     }
 
     @Nullable
-    public byte[] getRaw() {
-        return raw;
+    public byte[] getContent() {
+        return content;
     }
 
     public DataType getDataType() {
@@ -47,8 +55,8 @@ public class GeneData implements Serializable {
         return this;
     }
 
-    public GeneData withRaw(byte[] raw) {
-        this.raw = raw;
+    public GeneData withContent(byte[] raw) {
+        this.content = raw;
         return this;
     }
 
@@ -64,7 +72,7 @@ public class GeneData implements Serializable {
 
     @DefaultCoder(SerializableCoder.class)
     public enum DataType {
-        RAW, BLOB_URI
+        CONTENT, BLOB_URI
     }
 
     @Override
@@ -75,14 +83,14 @@ public class GeneData implements Serializable {
         return dataType == geneData.dataType &&
                 Objects.equals(fileName, geneData.fileName) &&
                 Objects.equals(blobUri, geneData.blobUri) &&
-                Arrays.equals(raw, geneData.raw) &&
+                Arrays.equals(content, geneData.content) &&
                 Objects.equals(referenceName, geneData.referenceName);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(dataType, fileName, blobUri, referenceName);
-        result = 31 * result + Arrays.hashCode(raw);
+        result = 31 * result + Arrays.hashCode(content);
         return result;
     }
 
@@ -92,7 +100,7 @@ public class GeneData implements Serializable {
                 "dataType=" + dataType +
                 ", fileName='" + fileName + '\'' +
                 ", blobUri='" + blobUri + '\'' +
-                ", rawSize=" + (raw != null ? String.valueOf(raw.length) : "0") +
+                ", rawSize=" + (content != null ? String.valueOf(content.length) : "0") +
                 ", referenceName='" + referenceName + '\'' +
                 '}';
     }

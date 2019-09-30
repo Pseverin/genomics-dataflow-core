@@ -9,6 +9,7 @@ import com.google.allenday.genomics.core.io.GCSService;
 import com.google.allenday.genomics.core.io.IoHandler;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,15 +52,14 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, Iterable<GeneData>>, K
     private final static String SAM_FILE_PREFIX = ".sam";
 
     private String alignFastq(List<String> localFastqPaths,
-                              String filePrefix,
+                              String alignedSamPath,
                               String referenceName) {
-        String alignedSamPath = filePrefix + "_" + referenceName + SAM_FILE_PREFIX;
         String minimapCommand = String.format(ALIGN_COMMAND_PATTERN, ioHandler.generateReferencePath(referenceName),
                 String.join(" ", localFastqPaths), alignedSamPath);
 
-        boolean success = cmdExecutor.executeCommand(minimapCommand);
-        if (!success) {
-            throw new RuntimeException("Align command failed");
+        Pair<Boolean, Integer> result = cmdExecutor.executeCommand(minimapCommand);
+        if (!result.getValue0()) {
+            throw new AlignException(minimapCommand, result.getValue1());
         }
         return alignedSamPath;
     }
@@ -86,21 +86,39 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, Iterable<GeneData>>, K
                     srcFilesPaths.add(destFilepath);
                 }
 
-                String samFilePrefix = workingDir + geneExampleMetaData.getRun();
                 for (String referenceName : referenceNames) {
                     ioHandler.downloadReferenceIfNeeded(gcsService, referenceName);
-                    String samFile = alignFastq(srcFilesPaths, samFilePrefix, referenceName);
-                    c.output(KV.of(geneExampleMetaData, ioHandler.handleFileOutput(gcsService, samFile, referenceName)));
 
-                    srcFilesPaths.forEach(FileUtils::deleteFile);
-                    FileUtils.deleteFile(samFile);
+                    String alignedSamName = geneExampleMetaData.getRun() + "_" + referenceName + SAM_FILE_PREFIX;
+                    String alignedSamPath = workingDir + alignedSamName;
+                    GeneData copiedGeneData = ioHandler.tryToFindInPrevious(gcsService, alignedSamName, referenceName);
+                    if (copiedGeneData != null) {
+                        c.output(KV.of(geneExampleMetaData, copiedGeneData));
+                    } else {
+                        try {
+                            String samFile = alignFastq(srcFilesPaths, alignedSamPath, referenceName);
+                            c.output(KV.of(geneExampleMetaData, ioHandler.handleFileOutput(gcsService, samFile, referenceName)));
+                            FileUtils.deleteFile(samFile);
+                        } catch (AlignException e) {
+                            LOG.error(e.getMessage());
+                        }
+                    }
+                    LOG.info(String.format("Free disk space: %d", FileUtils.getFreeDiskSpace()));
                 }
             } catch (IOException e) {
                 LOG.error(e.getMessage());
             } finally {
+                srcFilesPaths.forEach(FileUtils::deleteFile);
                 FileUtils.deleteDir(workingDir);
             }
         }
 
+    }
+
+    public class AlignException extends RuntimeException {
+
+        public AlignException(String command, int code) {
+            super(String.format("Align command %s failed with code %d", command, code));
+        }
     }
 }

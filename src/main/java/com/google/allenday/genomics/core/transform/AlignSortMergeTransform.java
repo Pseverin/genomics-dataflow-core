@@ -22,6 +22,7 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
     private List<String> referenceList;
 
     private String alignDestGcsPrefix;
+    private String previousAlignDestGcsPrefix;
     private String sortDestGcsPrefix;
     private String mergeDestGcsPrefix;
     private long memoryOutputLimit;
@@ -40,6 +41,11 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
         this.memoryOutputLimit = memoryOutputLimit;
     }
 
+    public AlignSortMergeTransform withPreviousAlignDestGcsPrefix(String previousAlignDestGcsPrefix) {
+        this.previousAlignDestGcsPrefix = previousAlignDestGcsPrefix;
+        return this;
+    }
+
     @Override
     public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>> input) {
         return input
@@ -48,6 +54,7 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
                         new WorkerSetupService(new CmdExecutor()),
                         referenceList,
                         new IoHandler(srcBucket, destBucket, referenceDir, alignDestGcsPrefix, memoryOutputLimit)
+                                .withPreviousDestGcsPrefix(previousAlignDestGcsPrefix)
                 )))
 
                 .apply(ParDo.of(new SortFn(

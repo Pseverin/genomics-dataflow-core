@@ -2,13 +2,16 @@ package com.google.allenday.genomics.core.io;
 
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
+import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.*;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.List;
@@ -40,6 +43,31 @@ public class GCSService {
     public Blob saveToGcs(String bucketName, String blobName, byte[] content) {
         return storage.create(BlobInfo.newBuilder(bucketName, blobName).build(), content);
     }
+
+    public Blob writeToGcs(String bucketName, String blobName, String filePath) throws IOException {
+        BlobId blobId = BlobId.of(bucketName, blobName);
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+
+        RandomAccessFile srcFile = new RandomAccessFile(filePath, "r");
+        FileChannel inChannel = srcFile.getChannel();
+        ByteBuffer buffer = ByteBuffer.allocate(64 * 1024);
+
+        try (WriteChannel writer = storage.writer(blobInfo)) {
+            while (inChannel.read(buffer) > 0) {
+                buffer.flip();
+                try {
+                    writer.write(buffer);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                buffer.clear();
+            }
+        }
+        inChannel.close();
+        srcFile.close();
+        return getBlob(bucketName, blobName);
+    }
+
 
     public String getUriFromBlob(Blob blob) {
         return String.format("gs://%s/%s", blob.getBucket(), blob.getName());
