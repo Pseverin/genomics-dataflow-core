@@ -7,6 +7,9 @@ import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
 import com.google.allenday.genomics.core.io.IoHandler;
 import com.google.allenday.genomics.core.merge.BamFilesMerger;
+import com.google.allenday.genomics.core.transform.fn.AlignFn;
+import com.google.allenday.genomics.core.transform.fn.MergeFn;
+import com.google.allenday.genomics.core.transform.fn.SortFn;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
@@ -14,7 +17,8 @@ import org.apache.beam.sdk.values.PCollection;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>>, PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
+public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>>,
+        PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
 
     private String srcBucket;
     private String destBucket;

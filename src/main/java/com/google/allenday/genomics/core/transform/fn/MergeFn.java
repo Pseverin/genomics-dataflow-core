@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.transform;
+package com.google.allenday.genomics.core.transform.fn;
 
 import com.google.allenday.genomics.core.merge.BamFilesMerger;
 import com.google.allenday.genomics.core.gene.GeneData;
@@ -34,7 +34,7 @@ public class MergeFn extends DoFn<KV<KV<GeneReadGroupMetaData, String>, Iterable
     }
 
     @Setup
-    public void setUp() throws Exception {
+    public void setUp() {
         gcsService = GCSService.initialize();
     }
 

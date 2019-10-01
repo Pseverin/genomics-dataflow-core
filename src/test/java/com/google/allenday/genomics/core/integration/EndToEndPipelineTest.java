@@ -29,6 +29,9 @@ import java.util.TimeZone;
  */
 public class EndToEndPipelineTest {
 
+
+    private final static String PROJECT = "cannabis-3k";
+
     private final static String SRC_BUCKET = "cannabis-3k";
     private final static String TEST_EXAMPLE_PROJECT = "SRP092005";
     private final static String TEST_EXAMPLE_SRA = "SRS1760342";
@@ -51,7 +54,7 @@ public class EndToEndPipelineTest {
         pipelineOptions.setRunner(DataflowRunner.class);
 
         pipelineOptions.setWorkerMachineType("n1-standard-8");
-        pipelineOptions.setProject("cannabis-3k");
+        pipelineOptions.setProject(PROJECT);
         pipelineOptions.setNumberOfWorkerHarnessThreads(1);
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd--HH-mm-ss-z");
@@ -93,12 +96,5 @@ public class EndToEndPipelineTest {
 
         GCSService gcsService = GCSService.initialize();
         Assert.assertTrue(gcsService.isExists(BlobId.of(RESULT_BUCKET, mergeResultGcsPath + TEST_EXAMPLE_SRA + "_" + TEST_EXAMPLE_SRA + ".merged.sorted.bam")));
-    }
-
-    @Test
-    public void testUploadFile() throws IOException {
-        GCSService initialize = GCSService.initialize();
-        initialize.writeToGcs("cannabis-3k-results", "test.pom", "pom.xml");
-
     }
 }

@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.transform;
+package com.google.allenday.genomics.core.transform.fn;
 
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
@@ -40,7 +40,7 @@ public class AlignFn extends DoFn<KV<GeneExampleMetaData, Iterable<GeneData>>, K
     }
 
     @Setup
-    public void setUp() throws Exception {
+    public void setUp() {
         gcsService = GCSService.initialize();
         workerSetupService.setupMinimap2();
     }

@@ -1,4 +1,4 @@
-package com.google.allenday.genomics.core.transform;
+package com.google.allenday.genomics.core.transform.fn;
 
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
@@ -28,7 +28,7 @@ public class SortFn extends DoFn<KV<GeneExampleMetaData, GeneData>, KV<GeneExamp
     }
 
     @Setup
-    public void setUp() throws Exception {
+    public void setUp() {
         gcsService = GCSService.initialize();
     }
 
