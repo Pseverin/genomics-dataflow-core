@@ -4,7 +4,6 @@ import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.*;
-import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,6 +11,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.List;
@@ -27,17 +27,23 @@ public class GCSService {
     private Logger LOG = LoggerFactory.getLogger(GCSService.class);
 
     private Storage storage;
+    private FileUtils fileUtils;
 
-    public GCSService(Storage storage) {
+    public GCSService(Storage storage, FileUtils fileUtils) {
         this.storage = storage;
+        this.fileUtils = fileUtils;
     }
 
-    public static GCSService initialize() {
-        return new GCSService(StorageOptions.getDefaultInstance().getService());
+    public static GCSService initialize(FileUtils fileUtils) {
+        return new GCSService(StorageOptions.getDefaultInstance().getService(), fileUtils);
+    }
+
+    public Blob getBlob(BlobId blobId) throws StorageException {
+        return storage.get(blobId);
     }
 
     public Blob getBlob(String bucketName, String blobName) throws StorageException {
-        return storage.get(BlobId.of(bucketName, blobName));
+        return getBlob(BlobId.of(bucketName, blobName));
     }
 
     public Blob saveToGcs(String bucketName, String blobName, byte[] content) {
@@ -45,11 +51,16 @@ public class GCSService {
     }
 
     public Blob writeToGcs(String bucketName, String blobName, String filePath) throws IOException {
+        RandomAccessFile srcFile = new RandomAccessFile(filePath, "r");
+        FileChannel inChannel = srcFile.getChannel();
+
+        return writeToGcs(bucketName, blobName, inChannel);
+    }
+
+    public Blob writeToGcs(String bucketName, String blobName, ReadableByteChannel inChannel) throws IOException {
         BlobId blobId = BlobId.of(bucketName, blobName);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 
-        RandomAccessFile srcFile = new RandomAccessFile(filePath, "r");
-        FileChannel inChannel = srcFile.getChannel();
         ByteBuffer buffer = ByteBuffer.allocate(64 * 1024);
 
         try (WriteChannel writer = storage.writer(blobInfo)) {
@@ -64,18 +75,15 @@ public class GCSService {
             }
         }
         inChannel.close();
-        srcFile.close();
         return getBlob(bucketName, blobName);
     }
 
 
-    public String getUriFromBlob(Blob blob) {
-        return String.format("gs://%s/%s", blob.getBucket(), blob.getName());
+    public String getUriFromBlob(BlobId blobId) {
+        return String.format("gs://%s/%s", blobId.getBucket(), blobId.getName());
     }
 
-    public Blob copy(String oldBucketName, String oldBlobName, String newBucketName, String newBlobName) {
-        BlobId srcBlobId = BlobId.of(oldBucketName, oldBlobName);
-        BlobId destBlobId = BlobId.of(newBucketName, newBlobName);
+    public Blob copy(BlobId srcBlobId, BlobId destBlobId) {
         CopyWriter copyWriter = storage.copy(Storage.CopyRequest.newBuilder()
                 .setSource(srcBlobId)
                 .setTarget(destBlobId)
@@ -83,15 +91,15 @@ public class GCSService {
         return copyWriter.getResult();
     }
 
-    public Pair<String, String> getBlobElementsFromUri(String uri) {
+    public BlobId getBlobIdFromUri(String uri) {
         try {
             String workPart = uri.split("//")[1];
             String[] parts = workPart.split("/");
             String bucket = parts[0];
             String name = workPart.replace(bucket + "/", "");
-            return Pair.with(bucket, name);
+            return BlobId.of(bucket, name);
         } catch (Exception e) {
-            return Pair.with("", "");
+            return null;
         }
     }
 
@@ -131,6 +139,7 @@ public class GCSService {
         LOG.info(String.format("Start downloading blob gs://%s/%s with size %d into %s", blob.getBucket(), blob.getName(), blob.getSize(), filePath));
         blob.downloadTo(Paths.get(filePath));
         LOG.info(String.format("Blob gs://%s/%s successfully downloaded into %s", blob.getBucket(), blob.getName(), filePath));
+        LOG.info(String.format("Free disk space: %d", fileUtils.getFreeDiskSpace()));
     }
 
     public String readBlob(String bucketName, String blobName) throws IOException {

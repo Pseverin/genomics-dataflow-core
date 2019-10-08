@@ -3,19 +3,16 @@ package com.google.allenday.genomics.core.io;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class FileUtils {
+public class FileUtils implements Serializable {
 
     private static Logger LOG = LoggerFactory.getLogger(FileUtils.class);
 
-    public static void saveDataToFile(byte[] data, String filename) throws IOException {
+    public void saveDataToFile(byte[] data, String filename) throws IOException {
         File destFile = new File(filename);
         destFile.createNewFile();
         OutputStream os = new FileOutputStream(new File(filename));
@@ -23,34 +20,43 @@ public class FileUtils {
         os.close();
     }
 
-    public static boolean mkdir(String path) {
+    public String getCurrentPath(){
+        Path currentRelativePath = Paths.get("");
+        return currentRelativePath.toAbsolutePath().toString() + "/";
+    }
+
+    public String makeUniqueDirWithTimestampAndSuffix(String suffix) throws RuntimeException{
+        String workingDir = getCurrentPath() + System.currentTimeMillis() + "_" + suffix + "/";
+        mkdir(workingDir);
+        return workingDir;
+    }
+
+    public void mkdir(String path) throws RuntimeException{
         Path dir;
         if (path.charAt(path.length() - 1) != '/') {
             dir = Paths.get(path).getParent();
         } else {
             dir = Paths.get(path);
         }
-        try {
-            if (!Files.exists(dir)) {
+        if (!Files.exists(dir)) {
+            try {
                 Files.createDirectories(dir);
-                LOG.info(String.format("Dir %s created", dir.toString()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-            return true;
-        } catch (IOException e) {
-            LOG.error(e.getMessage());
-            return false;
+            LOG.info(String.format("Dir %s created", dir.toString()));
         }
     }
 
-    public static byte[] readFileToByteArray(String filePath) throws IOException {
+    public byte[] readFileToByteArray(String filePath) throws IOException {
         return Files.readAllBytes(new File(filePath).toPath());
     }
 
-    public static long getFileSizeMegaBytes(String filePath) {
+    public long getFileSizeMegaBytes(String filePath) {
         return new File(filePath).length() / (1024 * 1024);
     }
 
-    public static String getFilenameFromPath(String filePath) {
+    public String getFilenameFromPath(String filePath) {
         if (filePath.contains("/")) {
             return filePath.split("/")[filePath.split("/").length - 1];
         } else {
@@ -58,7 +64,7 @@ public class FileUtils {
         }
     }
 
-    public static String changeFileExtension(String fileName, String newFileExtension) {
+    public String changeFileExtension(String fileName, String newFileExtension) {
         if (fileName.contains(".")) {
             return fileName.split("\\.")[0] + newFileExtension;
         } else {
@@ -67,9 +73,9 @@ public class FileUtils {
     }
 
 
-    public static void deleteFile(String filePath){
+    public void deleteFile(String filePath) {
         File fileToDelete = new File(filePath);
-        if (fileToDelete.exists()){
+        if (fileToDelete.exists()) {
             boolean delete = fileToDelete.delete();
             if (delete) {
                 LOG.info(String.format("File %s deleted", filePath));
@@ -77,7 +83,7 @@ public class FileUtils {
         }
     }
 
-    public static void deleteDir(String dirPath){
+    public void deleteDir(String dirPath) {
         try {
             org.apache.commons.io.FileUtils.deleteDirectory(new File(dirPath));
             LOG.info(String.format("Dir %s deleted", dirPath));
@@ -86,7 +92,15 @@ public class FileUtils {
         }
     }
 
-    public static long getFreeDiskSpace(){
+    public long getFreeDiskSpace() {
         return new File("/").getFreeSpace();
+    }
+
+    public boolean exists(String filePath) {
+        return Files.exists(Paths.get(filePath));
+    }
+
+    public boolean contentEquals(File file1, File file2) throws IOException{
+        return org.apache.commons.io.FileUtils.contentEquals(file1, file2);
     }
 }

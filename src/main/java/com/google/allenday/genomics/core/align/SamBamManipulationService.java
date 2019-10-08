@@ -1,41 +1,25 @@
-/*
- * The MIT License
- *
- * Copyright (c) 2009 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-package com.google.allenday.genomics.core.merge;
+package com.google.allenday.genomics.core.align;
 
+import com.google.allenday.genomics.core.io.FileUtils;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-public class BamFilesMerger implements Serializable {
-    private static final Log log = Log.getInstance(BamFilesMerger.class);
+public class SamBamManipulationService implements Serializable {
+    private static final Log LOG = Log.getInstance(SamBamManipulationService.class);
+
+    private final static String SORTED_BAM_FILE_PREFIX = ".sorted.bam";
+    private final static String MERGE_SORTED_FILE_PREFIX = ".merged.sorted.bam";
 
     private SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
     private boolean ASSUME_SORTED = false;
@@ -45,8 +29,61 @@ public class BamFilesMerger implements Serializable {
     private File INTERVALS = null;
 
     private static final int PROGRESS_INTERVAL = 1000000;
+    private FileUtils fileUtils;
 
-    public int merge(List<Path> inputPaths, String outputFileName) {
+    public SamBamManipulationService(FileUtils fileUtils) {
+        this.fileUtils = fileUtils;
+    }
+
+    public String sortSam(String inputFilePath, String workDir,
+                          String outPrefix, String outSuffix) throws IOException {
+        String alignedSamName = fileUtils.getFilenameFromPath(inputFilePath);
+        String alignedSortedBamPath = workDir + outPrefix + "_" + outSuffix + SORTED_BAM_FILE_PREFIX;
+
+        final SamReader reader = SamReaderFactory.makeDefault().open(new File(inputFilePath));
+        reader.getFileHeader().setSortOrder(SAMFileHeader.SortOrder.coordinate);
+
+        SAMFileWriter samFileWriter = new SAMFileWriterFactory()
+                .makeBAMWriter(reader.getFileHeader(), false, new File(alignedSortedBamPath));
+
+        for (SAMRecord record : reader) {
+            samFileWriter.addAlignment(record);
+        }
+        samFileWriter.close();
+        reader.close();
+        return alignedSortedBamPath;
+    }
+
+    public boolean isRecordsInBamEquals(File file1, File file2){
+        final SamReader reader1 = SamReaderFactory.makeDefault().open(file1);
+        final SamReader reader2 = SamReaderFactory.makeDefault().open(file1);
+
+        SAMRecordIterator iterator1 = reader1.iterator();
+        SAMRecordIterator iterator2 = reader2.iterator();
+        while (true){
+            if (iterator1.hasNext() != iterator2.hasNext()){
+                return false;
+            } else if (iterator1.hasNext()){
+                boolean recordsEquals= iterator1.next().equals(iterator2.next());
+                if (!recordsEquals){
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        }
+    }
+
+    public String generateMergedFileName(String outPrefix, String outSuffix) {
+        return outPrefix + "_" + outSuffix + MERGE_SORTED_FILE_PREFIX;
+    }
+
+    public String mergeBamFiles(List<String> localBamPaths, String workDir,
+                                String outPrefix, String outSuffix) {
+        String outputFileName = workDir + generateMergedFileName(outPrefix, outSuffix);
+
+        List<Path> inputPaths = localBamPaths.stream().map(el -> Paths.get(el)).collect(Collectors.toList());
+
         boolean matchedSortOrders = true;
 
         // read interval list if it is defined
@@ -76,7 +113,7 @@ public class BamFilesMerger implements Serializable {
 
                 // A slightly hackish attempt to keep memory consumption down when merging multiple files with
                 // large sequence dictionaries (10,000s of sequences). If the dictionaries are identical, then
-                // replace the duplicate copies with a single dictionary to reduce the memory footprint. 
+                // replace the duplicate copies with a single dictionary to reduce the memory footprint.
                 if (dict == null) {
                     dict = in.getFileHeader().getSequenceDictionary();
                 } else if (dict.equals(in.getFileHeader().getSequenceDictionary())) {
@@ -87,8 +124,8 @@ public class BamFilesMerger implements Serializable {
             }
         }
 
-        // If all the input sort orders match the output sort order then just merge them and
-        // write on the fly, otherwise setup to merge and sort before writing out the final file
+        // If all the input sort orders match the output sort order then just mergeBamFiles them and
+        // write on the fly, otherwise setup to mergeBamFiles and sort before writing out the final file
         File outputFile = new File(outputFileName);
         IOUtil.assertFileIsWritable(new File(outputFileName));
         final boolean presorted;
@@ -96,12 +133,12 @@ public class BamFilesMerger implements Serializable {
         final boolean mergingSamRecordIteratorAssumeSorted;
 
         if (matchedSortOrders || SORT_ORDER == SAMFileHeader.SortOrder.unsorted || ASSUME_SORTED || INTERVALS != null) {
-            log.info("Input files are in same order as output so sorting to temp directory is not needed.");
+            LOG.info("Input files are in same order as output so sorting to temp directory is not needed.");
             headerMergerSortOrder = SORT_ORDER;
             mergingSamRecordIteratorAssumeSorted = ASSUME_SORTED;
             presorted = true;
         } else {
-            log.info("Sorting input files using temp directory ");
+            LOG.info("Sorting input files using temp directory ");
             headerMergerSortOrder = SAMFileHeader.SortOrder.unsorted;
             mergingSamRecordIteratorAssumeSorted = false;
             presorted = false;
@@ -113,7 +150,7 @@ public class BamFilesMerger implements Serializable {
             iterator = new MergingSamRecordIterator(headerMerger, readers, mergingSamRecordIteratorAssumeSorted);
         } else {
             // show warning related to https://github.com/broadinstitute/picard/pull/314/files
-            log.info("Warning: merged bams from different interval lists may contain the same read in both files");
+            LOG.info("Warning: merged bams from different interval lists may contain the same read in both files");
             iterator = new MergingSamRecordIterator(headerMerger, samReaderToIterator, true);
         }
         final SAMFileHeader header = headerMerger.getMergedHeader();
@@ -128,17 +165,17 @@ public class BamFilesMerger implements Serializable {
         final SAMFileWriter out = samFileWriterFactory.makeSAMOrBAMWriter(header, presorted, outputFile);
 
         // Lastly loop through and write out the records
-        final ProgressLogger progress = new ProgressLogger(log, PROGRESS_INTERVAL);
+        final ProgressLogger progress = new ProgressLogger(LOG, PROGRESS_INTERVAL);
         while (iterator.hasNext()) {
             final SAMRecord record = iterator.next();
             out.addAlignment(record);
             progress.record(record);
         }
 
-        log.info("Finished reading inputs.");
+        LOG.info("Finished reading inputs.");
         for (final CloseableIterator<SAMRecord> iter : samReaderToIterator.values()) CloserUtil.close(iter);
         CloserUtil.close(readers);
         out.close();
-        return 0;
+        return outputFileName;
     }
 }

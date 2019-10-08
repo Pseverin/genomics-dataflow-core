@@ -1,12 +1,8 @@
 package com.google.allenday.genomics.core.transform;
 
-import com.google.allenday.genomics.core.cmd.CmdExecutor;
-import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.gene.GeneReadGroupMetaData;
-import com.google.allenday.genomics.core.io.IoHandler;
-import com.google.allenday.genomics.core.merge.BamFilesMerger;
 import com.google.allenday.genomics.core.transform.fn.AlignFn;
 import com.google.allenday.genomics.core.transform.fn.MergeFn;
 import com.google.allenday.genomics.core.transform.fn.SortFn;
@@ -15,55 +11,27 @@ import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>>,
         PCollection<KV<GeneReadGroupMetaData, GeneData>>> {
 
-    private String srcBucket;
-    private String destBucket;
-    private String referenceDir;
-    private List<String> referenceList;
+    public AlignFn alignFn;
+    public SortFn sortFn;
+    public MergeFn mergeFn;
 
-    private String alignDestGcsPrefix;
-    private String previousAlignDestGcsPrefix;
-    private String sortDestGcsPrefix;
-    private String mergeDestGcsPrefix;
-    private long memoryOutputLimit;
-
-    public AlignSortMergeTransform(@Nullable String name, String srcBucket, String destBucket, String referenceDir,
-                                   List<String> referenceList, String alignDestGcsPrefix, String sortDestGcsPrefix,
-                                   String mergeDestGcsPrefix, long memoryOutputLimit) {
+    public AlignSortMergeTransform(@Nullable String name, AlignFn alignFn, SortFn sortFn, MergeFn mergeFn) {
         super(name);
-        this.srcBucket = srcBucket;
-        this.destBucket = destBucket;
-        this.referenceDir = referenceDir;
-        this.referenceList = referenceList;
-        this.alignDestGcsPrefix = alignDestGcsPrefix;
-        this.sortDestGcsPrefix = sortDestGcsPrefix;
-        this.mergeDestGcsPrefix = mergeDestGcsPrefix;
-        this.memoryOutputLimit = memoryOutputLimit;
-    }
-
-    public AlignSortMergeTransform withPreviousAlignDestGcsPrefix(String previousAlignDestGcsPrefix) {
-        this.previousAlignDestGcsPrefix = previousAlignDestGcsPrefix;
-        return this;
+        this.alignFn = alignFn;
+        this.sortFn = sortFn;
+        this.mergeFn = mergeFn;
     }
 
     @Override
     public PCollection<KV<GeneReadGroupMetaData, GeneData>> expand(PCollection<KV<GeneExampleMetaData, Iterable<GeneData>>> input) {
         return input
-                .apply(ParDo.of(new AlignFn(
-                        new CmdExecutor(),
-                        new WorkerSetupService(new CmdExecutor()),
-                        referenceList,
-                        new IoHandler(srcBucket, destBucket, referenceDir, alignDestGcsPrefix, memoryOutputLimit)
-                                .withPreviousDestGcsPrefix(previousAlignDestGcsPrefix)
-                )))
-
-                .apply(ParDo.of(new SortFn(
-                        new IoHandler(destBucket, destBucket, referenceDir, sortDestGcsPrefix, memoryOutputLimit)
-                )))
+                .apply("IterToList transform 1", new ValueIterableToValueListTransform<>())
+                .apply(ParDo.of(alignFn))
+                .apply(ParDo.of(sortFn))
                 .apply(MapElements.via(new SimpleFunction<KV<GeneExampleMetaData, GeneData>, KV<KV<GeneReadGroupMetaData, String>, GeneData>>() {
                     @Override
                     public KV<KV<GeneReadGroupMetaData, String>, GeneData> apply(KV<GeneExampleMetaData, GeneData> input) {
@@ -73,9 +41,7 @@ public class AlignSortMergeTransform extends PTransform<PCollection<KV<GeneExamp
                     }
                 }))
                 .apply(GroupByKey.create())
-                .apply(ParDo.of(new MergeFn(
-                        new IoHandler(destBucket, destBucket, referenceDir, mergeDestGcsPrefix, memoryOutputLimit),
-                        new BamFilesMerger()
-                )));
+                .apply("IterToList transform 2", new ValueIterableToValueListTransform<>())
+                .apply(ParDo.of(mergeFn));
     }
 }
