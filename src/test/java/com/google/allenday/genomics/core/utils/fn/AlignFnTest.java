@@ -1,10 +1,11 @@
-package com.google.allenday.genomics.core.transform.fn;
+package com.google.allenday.genomics.core.utils.fn;
 
+import com.google.allenday.genomics.core.align.transform.AlignFn;
 import com.google.allenday.genomics.core.align.AlignService;
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.gene.GeneExampleMetaData;
 import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.IoHandler;
+import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.testing.PAssert;
@@ -42,7 +43,7 @@ public class AlignFnTest implements Serializable {
         AlignService alignServiceMock = Mockito.mock(AlignService.class, Mockito.withSettings().serializable());
         ReferencesProvider referencesProviderv = Mockito.mock(ReferencesProvider.class, Mockito.withSettings().serializable());
         FileUtils fileUtilsMock = Mockito.mock(FileUtils.class, Mockito.withSettings().serializable());
-        IoHandler ioHandlerMock = Mockito.mock(IoHandler.class, Mockito.withSettings().serializable());
+        TransformIoHandler transformIoHandlerMock = Mockito.mock(TransformIoHandler.class, Mockito.withSettings().serializable());
 
         List<String> referenceList = new ArrayList<String>() {
             {
@@ -53,7 +54,7 @@ public class AlignFnTest implements Serializable {
 
         Mockito.when(alignServiceMock.alignFastq(anyString(), any(), anyString(), anyString(), anyString())).thenReturn(resultName);
         for (String reference : referenceList) {
-            Mockito.when(ioHandlerMock.handleFileOutput(any(), Mockito.eq(resultName), Mockito.eq(reference)))
+            Mockito.when(transformIoHandlerMock.handleFileOutput(any(), Mockito.eq(resultName), Mockito.eq(reference)))
                     .thenReturn(GeneData.fromBlobUri("result_uri", resultName)
                             .withReferenceName(reference));
         }
@@ -64,11 +65,11 @@ public class AlignFnTest implements Serializable {
         }};
 
         GeneExampleMetaData geneExampleMetaData = new GeneExampleMetaData("test_project", "test_project_id",
-                "test_bio_sample", "tes_sra_sample", "test_run", "");
+                "test_bio_sample", "tes_sra_sample", "test_run", false, "");
 
         PCollection<KV<GeneExampleMetaData, GeneData>> alignedData = testPipeline
                 .apply(Create.<KV<GeneExampleMetaData, List<GeneData>>>of(KV.of(geneExampleMetaData, geneDataList)))
-                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProviderv, referenceList, ioHandlerMock, fileUtilsMock)));
+                .apply(ParDo.of(new AlignFn(alignServiceMock, referencesProviderv, referenceList, transformIoHandlerMock, fileUtilsMock)));
 
         PAssert.that(alignedData)
                 .satisfies(new SimpleFunction<Iterable<KV<GeneExampleMetaData, GeneData>>, Void>() {

@@ -1,19 +1,14 @@
-package com.google.allenday.genomics.core.transform.reference;
+package com.google.allenday.genomics.core.utils.reference;
 
-import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.IoHandler;
 import com.google.allenday.genomics.core.reference.ReferencesProvider;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 public class ReferenceProviderTests {
 

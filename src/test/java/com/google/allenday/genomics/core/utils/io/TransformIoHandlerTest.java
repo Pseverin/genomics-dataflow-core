@@ -1,9 +1,9 @@
-package com.google.allenday.genomics.core.transform.io;
+package com.google.allenday.genomics.core.utils.io;
 
 import com.google.allenday.genomics.core.gene.GeneData;
 import com.google.allenday.genomics.core.io.FileUtils;
 import com.google.allenday.genomics.core.io.GCSService;
-import com.google.allenday.genomics.core.io.IoHandler;
+import com.google.allenday.genomics.core.io.TransformIoHandler;
 import com.google.cloud.storage.Blob;
 import org.junit.Assert;
 import org.junit.Test;
@@ -11,7 +11,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 
-public class IoHandlerTest {
+public class TransformIoHandlerTest {
 
     private final static String RESULT_BUCKET = "resultsBucket";
     private final static String DEST_GCS_PREFIX = "destGcsPrefix";
@@ -27,8 +27,8 @@ public class IoHandlerTest {
 
         Mockito.when(geneDataMock.getFileName()).thenReturn(FILE_NAME);
 
-        IoHandler ioHandler = new IoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
-        String result = ioHandler.handleInputAsLocalFile(gcsServiceMock, geneDataMock, WORK_DIR);
+        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
+        String result = transformIoHandler.handleInputAsLocalFile(gcsServiceMock, geneDataMock, WORK_DIR);
 
         Assert.assertEquals("Result asserting", WORK_DIR + FILE_NAME, result);
     }
@@ -45,8 +45,8 @@ public class IoHandlerTest {
         Mockito.when(geneDataMock.getBlobUri()).thenReturn(BLOB_URI);
         Mockito.when(gcsServiceMock.getBlob(Mockito.any())).thenReturn(blobMock);
 
-        IoHandler ioHandler = new IoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
-        ioHandler.handleInputAsLocalFile(gcsServiceMock, geneDataMock, WORK_DIR);
+        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
+        transformIoHandler.handleInputAsLocalFile(gcsServiceMock, geneDataMock, WORK_DIR);
 
         Mockito.verify(gcsServiceMock).getBlobIdFromUri(BLOB_URI);
         Mockito.verify(gcsServiceMock).downloadBlobTo(blobMock, WORK_DIR + FILE_NAME);
@@ -64,8 +64,8 @@ public class IoHandlerTest {
         Mockito.when(geneDataMock.getDataType()).thenReturn(GeneData.DataType.CONTENT);
         Mockito.when(geneDataMock.getContent()).thenReturn(byteArray);
 
-        IoHandler ioHandler = new IoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
-        ioHandler.handleInputAsLocalFile(gcsServiceMock, geneDataMock, WORK_DIR);
+        TransformIoHandler transformIoHandler = new TransformIoHandler(RESULT_BUCKET, DEST_GCS_PREFIX, 100, fileUtilsMock);
+        transformIoHandler.handleInputAsLocalFile(gcsServiceMock, geneDataMock, WORK_DIR);
 
         Mockito.verify(fileUtilsMock).saveDataToFile(byteArray, WORK_DIR + FILE_NAME);
     }

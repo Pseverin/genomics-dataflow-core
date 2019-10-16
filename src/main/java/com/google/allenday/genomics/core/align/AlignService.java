@@ -3,11 +3,8 @@ package com.google.allenday.genomics.core.align;
 import com.google.allenday.genomics.core.cmd.CmdExecutor;
 import com.google.allenday.genomics.core.cmd.WorkerSetupService;
 import com.google.allenday.genomics.core.io.FileUtils;
-import com.google.allenday.genomics.core.io.IoHandler;
-import com.google.allenday.genomics.core.transform.fn.AlignFn;
 import org.javatuples.Pair;
 
-import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 
